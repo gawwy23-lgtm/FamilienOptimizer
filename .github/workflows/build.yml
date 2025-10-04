@@ -16,31 +16,40 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Android SDK (CLI)
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
 
-      - name: Install Android build tools & platform
+      - name: Install Android packages
         run: |
           sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
           yes | sdkmanager --licenses
+
+      - name: Show project layout
+        run: |
+          pwd
+          ls -la
+          echo "---- app ----"
+          ls -la app || true
+          echo "---- app/src/main ----"
+          ls -la app/src/main || true
 
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.7
 
-      - name: Build Debug APK (wrapper or global gradle)
+      # Erzeuge gradle-wrapper im Repo und nutze ihn
+      - name: Generate Gradle wrapper
         run: |
-          if [ -f ./gradlew ]; then
-            chmod +x ./gradlew
-            ./gradlew --version
-            ./gradlew assembleDebug
-          else
-            gradle --version
-            gradle assembleDebug
-          fi
+          gradle wrapper --gradle-version 8.7
+          chmod +x ./gradlew
+          ./gradlew --version
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew clean :app:assembleDebug --stacktrace --info
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
