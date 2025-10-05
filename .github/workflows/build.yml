@@ -32,7 +32,6 @@ jobs:
         run: |
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "platforms;android-34"
-          # Versuche mehrere Build-Tools-Versionen, nimm die erste verfügbare
           for v in 35.0.0 34.0.2 34.0.0; do
             sdkmanager --install "build-tools;$v" && break || true
           done
@@ -59,9 +58,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          echo "🔎 Versuche, den Modulnamen aus settings.gradle(.kts) zu erkennen…"
+          echo "Detecting module name from settings.gradle(.kts)..."
           MOD=""
-          # Versuche settings.gradle.kts, dann settings.gradle
           if [ -f settings.gradle.kts ]; then
             MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle.kts | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
           fi
@@ -69,10 +67,10 @@ jobs:
             MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
           fi
           if [ -z "$MOD" ]; then
-            echo "⚠️  Konnte keinen Modulnamen finden – versuche direkten Build: assembleDebug"
+            echo "No module detected. Trying assembleDebug at root."
             ./gradlew clean assembleDebug --stacktrace --info
           else
-            echo "✅ Gefundenes Modul: :$MOD"
+            echo "Detected module: :$MOD"
             ./gradlew clean :$MOD:assembleDebug --stacktrace --info || ./gradlew clean assembleDebug --stacktrace --info
           fi
 
