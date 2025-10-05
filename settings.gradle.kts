@@ -15,5 +15,3 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "FamilienOptimizer"
-
-include(":app")
