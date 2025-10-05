@@ -32,7 +32,8 @@ jobs:
         run: |
           yes | sdkmanager --licenses
           sdkmanager --install "platform-tools" "platforms;android-34"
-          for v in 34.0.0 34.0.2 35.0.0; do
+          # Versuche mehrere Build-Tools-Versionen, nimm die erste verfügbare
+          for v in 35.0.0 34.0.2 34.0.0; do
             sdkmanager --install "build-tools;$v" && break || true
           done
 
@@ -50,9 +51,30 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --version
 
-      - name: Build Debug APK
-        # ⚠️ Falls dein Modul NICHT :app heißt, ändere den folgenden Befehl!
-        run: ./gradlew clean :app:assembleDebug --stacktrace --info
+      - name: Show Gradle projects (debug info)
+        shell: bash
+        run: ./gradlew projects || true
+
+      - name: Detect module and build Debug APK
+        shell: bash
+        run: |
+          set -e
+          echo "🔎 Versuche, den Modulnamen aus settings.gradle(.kts) zu erkennen…"
+          MOD=""
+          # Versuche settings.gradle.kts, dann settings.gradle
+          if [ -f settings.gradle.kts ]; then
+            MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle.kts | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
+          fi
+          if [ -z "$MOD" ] && [ -f settings.gradle ]; then
+            MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
+          fi
+          if [ -z "$MOD" ]; then
+            echo "⚠️  Konnte keinen Modulnamen finden – versuche direkten Build: assembleDebug"
+            ./gradlew clean assembleDebug --stacktrace --info
+          else
+            echo "✅ Gefundenes Modul: :$MOD"
+            ./gradlew clean :$MOD:assembleDebug --stacktrace --info || ./gradlew clean assembleDebug --stacktrace --info
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
