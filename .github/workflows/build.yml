@@ -55,29 +55,8 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --version
 
-      - name: Show Gradle projects (debug info)
-        shell: bash
-        run: ./gradlew projects || true
-
-      - name: Detect module and build Debug APK
-        shell: bash
-        run: |
-          set -e
-          echo "Detecting module name from settings.gradle(.kts)..."
-          MOD=""
-          if [ -f settings.gradle.kts ]; then
-            MOD=$(grep -Eo 'include\(":[^"]+"\)' settings.gradle.kts | head -n1 | sed 's/.*":\([^"]*\)".*/\1/')
-          fi
-          if [ -z "$MOD" ] && [ -f settings.gradle ]; then
-            MOD=$(grep -Eo 'include\(":[^"]+"\)' settings.gradle | head -n1 | sed 's/.*":\([^"]*\)".*/\1/')
-          fi
-          if [ -z "$MOD" ]; then
-            echo "No module detected. Trying assembleDebug at root."
-            ./gradlew clean assembleDebug --stacktrace --info
-          else
-            echo "Detected module: :$MOD"
-            ./gradlew clean :$MOD:assembleDebug --stacktrace --info || ./gradlew clean assembleDebug --stacktrace --info
-          fi
+      - name: Build Debug APK (root project)
+        run: ./gradlew clean assembleDebug --stacktrace --info
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
