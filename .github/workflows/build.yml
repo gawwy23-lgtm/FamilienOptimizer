@@ -2,9 +2,9 @@ name: Android CI (Debug)
 
 on:
   push:
-    branches: [ main ]      # baut automatisch bei Push auf main
-  pull_request:             # baut bei PRs
-  workflow_dispatch:        # manuell startbar
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,17 +25,17 @@ jobs:
       - name: Set up Android SDK (API 34)
         uses: android-actions/setup-android@v3
         with:
-          api-level: 34
+          packages: "platforms;android-34"
 
       - name: Accept licenses & install packages
         shell: bash
         run: |
           yes | sdkmanager --licenses
-          sdkmanager --install "platform-tools" "platforms;android-34" || true
-          # Build-Tools 34: versuche 34.0.0, sonst 34.0.2
-          sdkmanager --install "build-tools;34.0.0" || sdkmanager --install "build-tools;34.0.2"
+          sdkmanager --install "platform-tools" "platforms;android-34"
+          for v in 34.0.0 34.0.2 35.0.0; do
+            sdkmanager --install "build-tools;$v" && break || true
+          done
 
-      # Gradle vorbereiten (funktioniert auch, wenn kein Wrapper eingecheckt ist)
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -51,6 +51,7 @@ jobs:
           ./gradlew --version
 
       - name: Build Debug APK
+        # ⚠️ Falls dein Modul NICHT :app heißt, ändere den folgenden Befehl!
         run: ./gradlew clean :app:assembleDebug --stacktrace --info
 
       - name: Upload APK
@@ -58,7 +59,5 @@ jobs:
         with:
           name: FamilienOptimizer-debug
           path: |
-            app/build/outputs/apk/debug/*.apk
             **/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          
