@@ -30,8 +30,13 @@ jobs:
       - name: Accept licenses & install packages
         shell: bash
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager --install "platform-tools" "platforms;android-34"
+          # Lizenzen akzeptieren – "Broken pipe" im CI ist harmlos -> ignorieren
+          yes | sdkmanager --licenses >/dev/null || true
+
+          # Basis-Tools installieren (ignorieren, wenn schon vorhanden)
+          sdkmanager --install "platform-tools" "platforms;android-34" || true
+
+          # Build-Tools: versuche mehrere Versionen, nimm die erste verfügbare
           for v in 35.0.0 34.0.2 34.0.0; do
             sdkmanager --install "build-tools;$v" && break || true
           done
@@ -61,10 +66,10 @@ jobs:
           echo "Detecting module name from settings.gradle(.kts)..."
           MOD=""
           if [ -f settings.gradle.kts ]; then
-            MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle.kts | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
+            MOD=$(grep -Eo 'include\(":[^"]+"\)' settings.gradle.kts | head -n1 | sed 's/.*":\([^"]*\)".*/\1/')
           fi
           if [ -z "$MOD" ] && [ -f settings.gradle ]; then
-            MOD=$(grep -Eo 'include\\(":[^"]+"\\)' settings.gradle | head -n1 | sed 's/.*":\\([^"]*\\)".*/\\1/')
+            MOD=$(grep -Eo 'include\(":[^"]+"\)' settings.gradle | head -n1 | sed 's/.*":\([^"]*\)".*/\1/')
           fi
           if [ -z "$MOD" ]; then
             echo "No module detected. Trying assembleDebug at root."
